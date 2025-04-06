@@ -1,16 +1,22 @@
-# Use uma imagem base com o OpenJDK
-FROM openjdk:21-jdk-slim
+FROM maven:3.9.9-eclipse-temurin-21 AS builder
 
-# Defina o diretório de trabalho dentro do container
 WORKDIR /app
 
-# Copie o arquivo JAR da aplicação para dentro do container
-COPY target/billing-service-0.0.1-SNAPSHOT.jar /app.jar
+COPY pom.xml .
 
+RUN mvn dependency:go-offline -B
 
-# Exponha a porta que a aplicação Spring Boot vai rodar
+COPY src ./src
+
+RUN mvn clean package
+
+FROM openjdk:21-jdk AS runner
+
+WORKDIR /app
+
+COPY --from=builder ./app/target/billing-service-0.0.1-SNAPSHOT.jar ./app.jar
+
 EXPOSE 4001
 EXPOSE 9001
 
-# Comando para rodar a aplicação
-ENTRYPOINT ["java", "-jar", "/app.jar"]
+ENTRYPOINT ["java", "-jar", "app.jar"]
